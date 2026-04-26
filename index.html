@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Grammar Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .screen {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .option {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #fff;
+        }
+        .option:hover {
+            background: #f8f9fa;
+        }
+        .correct {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .incorrect {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .checkmark {
+            color: green;
+            font-size: 20px;
+        }
+        #timer {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #confirmation-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div id="start-screen" class="screen">
+        <h1>English Grammar Test</h1>
+        <input type="text" id="first-name" placeholder="Enter your first name">
+        <input type="text" id="last-name" placeholder="Enter your last name">
+        <button id="start-btn">Start Test</button>
+    </div>
+
+    <div id="confirmation-popup" style="display: none;">
+        <p>Confirm your name: <span id="confirm-name"></span></p>
+        <button id="confirm-btn">Confirm</button>
+        <button id="cancel-btn">Cancel</button>
+    </div>
+    <div id="overlay" style="display: none;"></div>
+
+    <div id="test-screen" class="screen" style="display: none;">
+        <div id="timer">Time: 5:00</div>
+        <div id="question-container">
+            <p id="question"></p>
+            <div class="option" data-option="A"></div>
+            <div class="option" data-option="B"></div>
+            <div class="option" data-option="C"></div>
+            <div class="option" data-option="D"></div>
+        </div>
+    </div>
+
+    <div id="results-screen" class="screen" style="display: none;">
+        <h1>Test Results</h1>
+        <p>Name: <span id="result-name"></span></p>
+        <p>Correct Answers: <span id="correct-count"></span></p>
+        <p>Wrong Answers: <span id="wrong-count"></span></p>
+        <p>Total Time: <span id="total-time"></span></p>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                question: "1) She ___ to school every day.",
+                options: { A: "go", B: "goes", C: "going", D: "gone" },
+                correct: "B"
+            },
+            {
+                question: "2) I ___ football on Sundays.",
+                options: { A: "plays", B: "play", C: "playing", D: "played" },
+                correct: "B"
+            },
+            {
+                question: "3) He ___ TV in the evening.",
+                options: { A: "watch", B: "watches", C: "watching", D: "watched" },
+                correct: "B"
+            },
+            {
+                question: "4) They ___ in London.",
+                options: { A: "lives", B: "live", C: "living", D: "lived" },
+                correct: "B"
+            },
+            {
+                question: "5) We ___ English at school.",
+                options: { A: "study", B: "studies", C: "studying", D: "studied" },
+                correct: "A"
+            },
+            {
+                question: "6) My brother ___ breakfast at 7 am.",
+                options: { A: "eat", B: "eats", C: "eating", D: "ate" },
+                correct: "B"
+            },
+            {
+                question: "7) She ___ not like coffee.",
+                options: { A: "do", B: "does", C: "is", D: "are" },
+                correct: "B"
+            },
+            {
+                question: "8) I ___ to music every day.",
+                options: { A: "listen", B: "listens", C: "listening", D: "listened" },
+                correct: "A"
+            },
+            {
+                question: "9) He ___ his homework after school.",
+                options: { A: "do", B: "does", C: "doing", D: "did" },
+                correct: "B"
+            },
+            {
+                question: "10) The sun ___ in the east.",
+                options: { A: "rise", B: "rises", C: "rising", D: "rose" },
+                correct: "B"
+            }
+        ];
+
+        let currentQuestionIndex = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let timerInterval;
+        let startTime;
+        let timeLeft = 300; // 5 minutes in seconds
+
+        const startScreen = document.getElementById('start-screen');
+        const confirmationPopup = document.getElementById('confirmation-popup');
+        const overlay = document.getElementById('overlay');
+        const testScreen = document.getElementById('test-screen');
+        const resultsScreen = document.getElementById('results-screen');
+        const firstNameInput = document.getElementById('first-name');
+        const lastNameInput = document.getElementById('last-name');
+        const startBtn = document.getElementById('start-btn');
+        const confirmBtn = document.getElementById('confirm-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+        const questionEl = document.getElementById('question');
+        const options = document.querySelectorAll('.option');
+        const timerEl = document.getElementById('timer');
+        const resultName = document.getElementById('result-name');
+        const correctCountEl = document.getElementById('correct-count');
+        const wrongCountEl = document.getElementById('wrong-count');
+        const totalTimeEl = document.getElementById('total-time');
+
+        startBtn.addEventListener('click', () => {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            if (firstName && lastName) {
+                document.getElementById('confirm-name').textContent = `${firstName} ${lastName}`;
+                confirmationPopup.style.display = 'block';
+                overlay.style.display = 'block';
+            } else {
+                alert('Please enter both first and last name.');
+            }
+        });
+
+        confirmBtn.addEventListener('click', () => {
+            confirmationPopup.style.display = 'none';
+            overlay.style.display = 'none';
+            startScreen.style.display = 'none';
+            testScreen.style.display = 'block';
+            startTest();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            confirmationPopup.style.display = 'none';
+            overlay.style.display = 'none';
+        });
+
+        function startTest() {
+            startTime = Date.now();
+            currentQuestionIndex = 0;
+            correctCount = 0;
+            wrongCount = 0;
+            timeLeft = 300;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            showQuestion();
+        }
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerEl.textContent = `Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            if (timeLeft <= 0) {
+                endTest();
+            } else {
+                timeLeft--;
+            }
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                endTest();
+                return;
+            }
+            const q = questions[currentQuestionIndex];
+            questionEl.textContent = q.question;
+            options.forEach((option, index) => {
+                const letter = String.fromCharCode(65 + index);
+                option.textContent = `${letter}) ${q.options[letter]}`;
+                option.classList.remove('correct', 'incorrect');
+                option.style.pointerEvents = 'auto';
+                option.addEventListener('click', selectAnswer);
+            });
+        }
+
+        function selectAnswer(event) {
+            const selectedOption = event.target;
+            const selectedLetter = selectedOption.dataset.option;
+            const correctLetter = questions[currentQuestionIndex].correct;
+
+            options.forEach(option => {
+                option.style.pointerEvents = 'none';
+                if (option.dataset.option === correctLetter) {
+                    option.classList.add('correct');
+                    option.innerHTML += ' <span class="checkmark">✅</span>';
+                } else if (option.dataset.option === selectedLetter && selectedLetter !== correctLetter) {
+                    option.classList.add('incorrect');
+                }
+            });
+
+            if (selectedLetter === correctLetter) {
+                correctCount++;
+            } else {
+                wrongCount++;
+            }
+
+            setTimeout(() => {
+                currentQuestionIndex++;
+                showQuestion();
+            }, 2000);
+        }
+
+        function endTest() {
+            clearInterval(timerInterval);
+            const endTime = Date.now();
+            const totalTime = Math.floor((endTime - startTime) / 1000);
+            const minutes = Math.floor(totalTime / 60);
+            const seconds = totalTime % 60;
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+
+            resultName.textContent = `${firstName} ${lastName}`;
+            correctCountEl.textContent = correctCount;
+            wrongCountEl.textContent = wrongCount;
+            totalTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            testScreen.style.display = 'none';
+            resultsScreen.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
